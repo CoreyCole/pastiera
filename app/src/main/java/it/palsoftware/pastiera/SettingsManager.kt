@@ -6,10 +6,8 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import android.text.InputType
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import it.palsoftware.pastiera.commands.CommandJson
 import it.palsoftware.pastiera.commands.CommandLaunchSpec
@@ -2181,27 +2179,27 @@ object SettingsManager {
             .apply()
     }
 
-    fun getCommitTextOnNullFields(context: Context): Boolean =
+    fun getTreatNonTextFieldsAsText(context: Context): Boolean =
         getPreferences(context).getBoolean(
             KEY_COMMIT_TEXT_ON_NULL_FIELDS,
             DEFAULT_COMMIT_TEXT_ON_NULL_FIELDS
         )
 
-    fun setCommitTextOnNullFields(context: Context, enabled: Boolean) {
+    fun setTreatNonTextFieldsAsText(context: Context, enabled: Boolean) {
         getPreferences(context).edit()
             .putBoolean(KEY_COMMIT_TEXT_ON_NULL_FIELDS, enabled)
             .commit()
     }
 
-    fun getCommitTextNullPackages(context: Context): Set<String> =
-        parseCommitTextNullPackages(
+    fun getNonTextFieldPackages(context: Context): Set<String> =
+        parseNonTextFieldPackages(
             getPreferences(context).getString(
                 KEY_COMMIT_TEXT_NULL_PACKAGES,
                 DEFAULT_COMMIT_TEXT_NULL_PACKAGES
             )
         )
 
-    fun setCommitTextNullPackages(context: Context, packages: Set<String>) {
+    fun setNonTextFieldPackages(context: Context, packages: Set<String>) {
         val value = packages
             .map { it.trim() }
             .filter { it.isNotEmpty() }
@@ -2212,33 +2210,24 @@ object SettingsManager {
             .apply()
     }
 
-    fun shouldCommitTextOnNullField(
+    fun shouldTreatNonTextFieldAsText(
         context: Context,
         info: EditorInfo?,
-        ic: InputConnection?,
         extraPackageName: String? = null
     ): Boolean {
-        if (!getCommitTextOnNullFields(context) || info == null) return false
-        val packages = getCommitTextNullPackages(context)
-        if (
-            packageMatchesCommitTextNullList(info.packageName, packages) ||
-            packageMatchesCommitTextNullList(extraPackageName, packages)
-        ) {
-            return true
-        }
-        // Termux enforce-char-based-input: class 0 + visible-password variation (0x80090).
-        val inputClass = info.inputType and InputType.TYPE_MASK_CLASS
-        val variation = info.inputType and InputType.TYPE_MASK_VARIATION
-        return inputClass == 0 && variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+        if (!getTreatNonTextFieldsAsText(context) || info == null) return false
+        val packages = getNonTextFieldPackages(context)
+        return packageMatchesNonTextFieldList(info.packageName, packages) ||
+            packageMatchesNonTextFieldList(extraPackageName, packages)
     }
 
-    internal fun packageMatchesCommitTextNullList(pkg: String?, packages: Set<String>): Boolean {
+    internal fun packageMatchesNonTextFieldList(pkg: String?, packages: Set<String>): Boolean {
         if (pkg.isNullOrBlank()) return false
         if (pkg in packages) return true
         return packages.any { listed -> pkg == listed || pkg.startsWith("$listed.") }
     }
 
-    internal fun parseCommitTextNullPackages(raw: String?): Set<String> =
+    internal fun parseNonTextFieldPackages(raw: String?): Set<String> =
         raw?.split(',')
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }

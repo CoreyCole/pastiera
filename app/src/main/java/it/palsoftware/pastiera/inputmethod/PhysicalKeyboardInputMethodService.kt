@@ -402,20 +402,19 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val symPage: Int
         get() = if (::symLayoutController.isInitialized) symLayoutController.currentSymPage() else 0
 
-    private fun shouldForceTerminalCommitText(info: EditorInfo?): Boolean =
-        SettingsManager.shouldCommitTextOnNullField(
+    private fun shouldTreatNonTextFieldAsText(info: EditorInfo?): Boolean =
+        SettingsManager.shouldTreatNonTextFieldAsText(
             this,
             info,
-            currentInputConnection,
             currentPackageName ?: info?.packageName
         )
 
     /**
-     * Termux with enforce-char-based-input reports class-0 inputType 0x80090.
-     * Rewrite it to TYPE_CLASS_TEXT so layout/Alt/SYM maps use commitText.
+     * Class-0 editors (TYPE_NULL or variation-only types) are not treated as text.
+     * Rewrite to TYPE_CLASS_TEXT so layout/Alt/SYM maps use commitText.
      */
-    private fun normalizeEditorInfoForTerminalCommit(info: EditorInfo?) {
-        if (info == null || !shouldForceTerminalCommitText(info)) return
+    private fun normalizeEditorInfoForNonTextField(info: EditorInfo?) {
+        if (info == null || !shouldTreatNonTextFieldAsText(info)) return
         val inputClass = info.inputType and android.text.InputType.TYPE_MASK_CLASS
         if (inputClass == 0) {
             info.inputType = android.text.InputType.TYPE_CLASS_TEXT or
@@ -424,20 +423,21 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     private fun updateInputContextState(info: EditorInfo?) {
-        normalizeEditorInfoForTerminalCommit(info)
+        normalizeEditorInfoForNonTextField(info)
         inputContextState = InputContextState.fromEditorInfo(
             info,
-            forceCommitText = shouldForceTerminalCommitText(info)
+            forceCommitText = shouldTreatNonTextFieldAsText(info)
         )
     }
 
     private fun hasEditableField(info: EditorInfo?, inputConnection: InputConnection?): Boolean {
-        val treatAsText = shouldForceTerminalCommitText(info)
+        if (inputConnection == null) return false
+        if (shouldTreatNonTextFieldAsText(info)) return true
         val inputType = info?.inputType ?: EditorInfo.TYPE_NULL
-        return treatAsText || (inputConnection != null && inputType != EditorInfo.TYPE_NULL)
+        return inputType != EditorInfo.TYPE_NULL
     }
 
-    private fun commitMappedTerminalText(text: String): Boolean {
+    private fun commitMappedText(text: String): Boolean {
         val ic = currentInputConnection ?: return false
         if (handleBoundaryTextBeforeCommit(text, ic)) return true
         ic.commitText(text, 1)
@@ -2096,6 +2096,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             symLayoutController = symLayoutController,
             isInputViewActive = { isInputViewActive },
             hasActiveTextField = { inputContextState.isEditable },
+            allowShowWithoutInputConnection = {
+                shouldTreatNonTextFieldAsText(currentInputEditorInfo)
+            },
             isNavModeLatched = { ctrlLatchFromNavMode },
             currentInputConnection = { currentInputConnection },
             isInputViewShown = { isInputViewShown },
@@ -3394,7 +3397,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         pendingKeyboardSurfaceTransition?.let(uiHandler::removeCallbacks)
         pendingKeyboardSurfaceTransition = null
         currentPackageName = info?.packageName
-        normalizeEditorInfoForTerminalCommit(info)
+        normalizeEditorInfoForNonTextField(info)
         super.onStartInput(info, restarting)
         if (::textExpansionController.isInitialized) textExpansionController.clear()
         if (
@@ -3417,13 +3420,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         
         // Reset clipboard overlay when starting new input
 
-        normalizeEditorInfoForTerminalCommit(info)
         updateInputContextState(info)
         val state = inputContextState
         val isEditable = state.isEditable
         val isReallyEditable = state.isReallyEditable
-        isInputViewActive = isEditable || shouldForceTerminalCommitText(info)
-        if (shouldForceTerminalCommitText(info)) {
+        isInputViewActive = isEditable
+        if (shouldTreatNonTextFieldAsText(info) && currentInputConnection == null) {
             @Suppress("DEPRECATION")
             requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_FORCED)
         }
@@ -4621,11 +4623,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             symChordUsedSinceKeyDown = true
             val symChar = symLayoutController.resolveChordSymbol(
                 keyCode = keyCode,
-                shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled,
-                preferTextPages = shouldForceTerminalCommitText(info)
+                shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled
             )
             if (!symChar.isNullOrEmpty()) {
-                if (commitMappedTerminalText(symChar)) {
+                if (commitMappedText(symChar)) {
                     updateStatusBarText()
                     return true
                 }

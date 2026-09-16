@@ -2,7 +2,6 @@ package it.palsoftware.pastiera
 
 import android.content.Context
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputConnection
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,16 +9,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
-class CommitTextOnNullFieldTest {
+class TreatNonTextFieldsAsTextTest {
     private val context: Context get() = RuntimeEnvironment.getApplication()
-    private val inputConnection: InputConnection = mock(InputConnection::class.java)
 
     @Before
     fun setUp() {
@@ -39,68 +36,83 @@ class CommitTextOnNullFieldTest {
 
     @Test
     fun defaultPackagesIncludeTermuxAndStayOff() {
-        assertFalse(SettingsManager.getCommitTextOnNullFields(context))
+        assertFalse(SettingsManager.getTreatNonTextFieldsAsText(context))
         assertEquals(
             setOf("com.termux", "com.termux.nix", "com.termux.app", "com.termux.styling"),
-            SettingsManager.getCommitTextNullPackages(context)
+            SettingsManager.getNonTextFieldPackages(context)
         )
     }
 
     @Test
-    fun settingOffKeepsTermuxOnNoEditablePath() {
+    fun settingOffKeepsListedPackageDisabled() {
         val info = EditorInfo().apply {
             packageName = "com.termux"
             inputType = EditorInfo.TYPE_NULL
         }
-        assertFalse(SettingsManager.shouldCommitTextOnNullField(context, info, inputConnection))
+        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
     }
 
     @Test
-    fun settingOnCommitsMappedKeysForTermuxTypeNull() {
-        SettingsManager.setCommitTextOnNullFields(context, true)
+    fun settingOnTreatsListedPackageTypeNullAsText() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
         val info = EditorInfo().apply {
             packageName = "com.termux"
             inputType = EditorInfo.TYPE_NULL
         }
-        assertTrue(SettingsManager.shouldCommitTextOnNullField(context, info, inputConnection))
+        assertTrue(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
     }
 
     @Test
-    fun settingOnCommitsMappedKeysForTermuxCharBasedInput() {
-        SettingsManager.setCommitTextOnNullFields(context, true)
+    fun settingOnTreatsListedPackageClassZeroAsText() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
         val info = EditorInfo().apply {
             packageName = "com.termux"
             inputType = 0x80090
         }
-        assertTrue(SettingsManager.shouldCommitTextOnNullField(context, info, inputConnection))
+        assertTrue(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
     }
 
     @Test
     fun unlistedPackageIsIgnoredEvenWhenEnabled() {
-        SettingsManager.setCommitTextOnNullFields(context, true)
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
         val info = EditorInfo().apply {
             packageName = "com.google.android.apps.maps"
             inputType = EditorInfo.TYPE_NULL
         }
-        assertFalse(SettingsManager.shouldCommitTextOnNullField(context, info, inputConnection))
+        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
     }
 
     @Test
-    fun missingInputConnectionStillForcesCommitTextForTermux() {
-        SettingsManager.setCommitTextOnNullFields(context, true)
+    fun unlistedPackageClassZeroIsIgnored() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
         val info = EditorInfo().apply {
-            packageName = "com.termux"
-            inputType = EditorInfo.TYPE_NULL
+            packageName = "com.android.launcher3"
+            inputType = 0x80090
         }
-        assertTrue(SettingsManager.shouldCommitTextOnNullField(context, info, null))
+        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
     }
 
     @Test
-    fun charBasedInputForcesCommitTextEvenWithoutPackage() {
-        SettingsManager.setCommitTextOnNullFields(context, true)
+    fun classZeroWithoutPackageIsIgnored() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
         val info = EditorInfo().apply {
             inputType = 0x80090
         }
-        assertTrue(SettingsManager.shouldCommitTextOnNullField(context, info, inputConnection))
+        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+    }
+
+    @Test
+    fun extraPackageNameCanMatchAllowlist() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
+        val info = EditorInfo().apply {
+            inputType = EditorInfo.TYPE_NULL
+        }
+        assertTrue(
+            SettingsManager.shouldTreatNonTextFieldAsText(
+                context,
+                info,
+                extraPackageName = "com.termux.nix"
+            )
+        )
     }
 }

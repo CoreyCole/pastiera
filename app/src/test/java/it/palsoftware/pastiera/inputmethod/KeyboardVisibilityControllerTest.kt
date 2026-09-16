@@ -381,7 +381,17 @@ class KeyboardVisibilityControllerTest {
         assertTrue(h.actions.isEmpty())
     }
 
-    private inner class Harness {
+    @Test
+    fun missingConnectionCanShowWhenAllowed() {
+        val h = Harness(allowShowWithoutConnection = true)
+        h.connection = null
+        h.controller.ensureImeSurfaceVisible()
+        assertFalse(h.actions.isEmpty())
+    }
+
+    private inner class Harness(
+        private val allowShowWithoutConnection: Boolean = false
+    ) {
         var active = true
         var connection: InputConnection? = mock(InputConnection::class.java)
         var inputShown = false
@@ -406,6 +416,7 @@ class KeyboardVisibilityControllerTest {
             symLayoutController = SymLayoutController(context, prefs, alternate),
             isInputViewActive = { active },
             hasActiveTextField = { active },
+            allowShowWithoutInputConnection = { allowShowWithoutConnection },
             isNavModeLatched = { false },
             currentInputConnection = { connection },
             isInputViewShown = { inputShown },

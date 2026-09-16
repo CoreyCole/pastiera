@@ -106,7 +106,7 @@ class InputContextStateTest {
     @Test
     fun typeNullIsNotEditableUnlessForced() {
         val info = EditorInfo().apply {
-            packageName = "com.termux"
+            packageName = "com.example.terminal"
             inputType = EditorInfo.TYPE_NULL
         }
         val state = InputContextState.fromEditorInfo(info)
@@ -118,7 +118,7 @@ class InputContextStateTest {
     @Test
     fun forceCommitTextTreatsTypeNullAsEditableFilter() {
         val info = EditorInfo().apply {
-            packageName = "com.termux"
+            packageName = "com.example.terminal"
             inputType = EditorInfo.TYPE_NULL
         }
         val state = InputContextState.fromEditorInfo(info, forceCommitText = true)
@@ -133,8 +133,8 @@ class InputContextStateTest {
     @Test
     fun forceCommitTextTreatsVisiblePasswordVariationWithoutClassAsFilter() {
         val info = EditorInfo().apply {
-            packageName = "com.termux"
-            // Termux enforce-char-based-input: class 0 + visible-password variation.
+            packageName = "com.example.terminal"
+            // Class 0 + visible-password variation (e.g. char-based terminal input).
             inputType = 0x80090
         }
         val unforced = InputContextState.fromEditorInfo(info)

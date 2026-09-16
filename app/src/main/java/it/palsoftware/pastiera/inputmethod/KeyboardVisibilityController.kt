@@ -14,6 +14,7 @@ class KeyboardVisibilityController(
     private val symLayoutController: SymLayoutController,
     private val isInputViewActive: () -> Boolean,
     private val hasActiveTextField: () -> Boolean,
+    private val allowShowWithoutInputConnection: () -> Boolean = { false },
     private val isNavModeLatched: () -> Boolean,
     private val currentInputConnection: () -> InputConnection?,
     private val isInputViewShown: () -> Boolean,
@@ -75,9 +76,9 @@ class KeyboardVisibilityController(
         return !usesCandidatesView()
     }
 
-    // Termux often has no InputConnection until the IME surface is requested.
+    // Some non-text editors only bind InputConnection after the IME surface is requested.
     private fun canShow() = isInputViewActive() && !isNavModeLatched() &&
-        (currentInputConnection() != null || hasActiveTextField())
+        (currentInputConnection() != null || allowShowWithoutInputConnection())
 
     fun ensureImeSurfaceVisible() {
         if (!canShow() || waitingForBackendHide) return

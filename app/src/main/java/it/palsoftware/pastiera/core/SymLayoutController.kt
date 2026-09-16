@@ -229,17 +229,11 @@ class SymLayoutController(
      * Resolves the character for a physical SYM+key chord without opening
      * the visual SYM layout. If a text SYM page is already active, use it.
      * Otherwise use the first enabled text page in configured order.
-     * [preferTextPages] skips the Device/Alt layer so closed-IME chords match
-     * the on-screen emoji/symbols boards (needed for Termux).
      */
-    fun resolveChordSymbol(
-        keyCode: Int,
-        shiftPressed: Boolean,
-        preferTextPages: Boolean = false
-    ): String? {
+    fun resolveChordSymbol(keyCode: Int, shiftPressed: Boolean): String? {
         val pageToUse = when (currentPageType()) {
             SymPage.DEVICE, SymPage.EMOJI, SymPage.SYMBOLS -> currentPageType()
-            else -> if (preferTextPages) preferredTextChordPage() else preferredChordPage()
+            else -> preferredChordPage()
         } ?: return null
 
         return when (pageToUse) {
@@ -348,12 +342,6 @@ class SymLayoutController(
     private fun preferredChordPage(config: SymPagesConfig = SettingsManager.getSymPagesConfig(context)): SymPage? {
         return buildActivePages(config).firstOrNull {
             it == SymPage.DEVICE || it == SymPage.EMOJI || it == SymPage.SYMBOLS
-        }
-    }
-
-    private fun preferredTextChordPage(config: SymPagesConfig = SettingsManager.getSymPagesConfig(context)): SymPage? {
-        return buildActivePages(config).firstOrNull {
-            it == SymPage.EMOJI || it == SymPage.SYMBOLS
         }
     }
 

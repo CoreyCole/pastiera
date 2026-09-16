@@ -110,8 +110,8 @@ fun AdvancedSettingsScreen(
     var experimentalCandidatesViewEnabled by remember {
         mutableStateOf(SettingsManager.getExperimentalCandidatesViewEnabled(context))
     }
-    var commitTextOnNullFields by remember {
-        mutableStateOf(SettingsManager.getCommitTextOnNullFields(context))
+    var treatNonTextFieldsAsText by remember {
+        mutableStateOf(SettingsManager.getTreatNonTextFieldsAsText(context))
     }
     var pendingDeviceChangeRestore by remember {
         mutableStateOf<Pair<Uri, RestoreManager.DeviceChange>?>(null)
@@ -139,7 +139,7 @@ fun AdvancedSettingsScreen(
                     experimentalCandidatesViewEnabled = SettingsManager.getExperimentalCandidatesViewEnabled(context)
                 }
                 "commit_text_on_null_fields" -> {
-                    commitTextOnNullFields = SettingsManager.getCommitTextOnNullFields(context)
+                    treatNonTextFieldsAsText = SettingsManager.getTreatNonTextFieldsAsText(context)
                 }
             }
         }
@@ -644,7 +644,7 @@ fun AdvancedSettingsScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .settingRow(SettingLinkIds.ADVANCED_COMMIT_TEXT_ON_NULL_FIELDS)
+                                .settingRow(SettingLinkIds.ADVANCED_TREAT_NON_TEXT_FIELDS_AS_TEXT)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -658,21 +658,21 @@ fun AdvancedSettingsScreen(
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Text(
-                                        text = stringResource(R.string.commit_text_on_null_fields_title),
+                                        text = stringResource(R.string.treat_non_text_fields_as_text_title),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = stringResource(R.string.commit_text_on_null_fields_description),
+                                        text = stringResource(R.string.treat_non_text_fields_as_text_description),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Switch(
-                                    checked = commitTextOnNullFields,
+                                    checked = treatNonTextFieldsAsText,
                                     onCheckedChange = { enabled ->
-                                        commitTextOnNullFields = enabled
-                                        SettingsManager.setCommitTextOnNullFields(context, enabled)
+                                        treatNonTextFieldsAsText = enabled
+                                        SettingsManager.setTreatNonTextFieldsAsText(context, enabled)
                                     }
                                 )
                             }

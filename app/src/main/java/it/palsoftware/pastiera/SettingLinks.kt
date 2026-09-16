@@ -90,7 +90,7 @@ object SettingLinkIds {
     const val ADVANCED_SWIPE_INCREMENTAL_THRESHOLD = "advanced.swipe_incremental_threshold"
     const val ADVANCED_CLIPBOARD_RETENTION_TIME = "advanced.clipboard_retention_time"
     const val ADVANCED_EXPERIMENTAL_CANDIDATES_VIEW = "advanced.experimental_candidates_view"
-    const val ADVANCED_COMMIT_TEXT_ON_NULL_FIELDS = "advanced.commit_text_on_null_fields"
+    const val ADVANCED_TREAT_NON_TEXT_FIELDS_AS_TEXT = "advanced.treat_non_text_fields_as_text"
     const val ADVANCED_SHOW_TUTORIAL = "advanced.show_tutorial"
     const val ADVANCED_SHOW_RELEASE_NOTES_TUTORIAL = "advanced.show_release_notes_tutorial"
 
@@ -639,9 +639,9 @@ object SettingLinkRegistry {
             destination = SettingsDestination.Advanced
         ),
         entry(
-            SettingLinkIds.ADVANCED_COMMIT_TEXT_ON_NULL_FIELDS,
-            R.string.commit_text_on_null_fields_title,
-            R.string.commit_text_on_null_fields_description,
+            SettingLinkIds.ADVANCED_TREAT_NON_TEXT_FIELDS_AS_TEXT,
+            R.string.treat_non_text_fields_as_text_title,
+            R.string.treat_non_text_fields_as_text_description,
             destination = SettingsDestination.Advanced
         ),
         entry(

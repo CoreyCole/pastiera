@@ -1492,8 +1492,8 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="clipboard_retention_apply">Apply</string>
     <string name="experimental_candidates_view_title">Experimental candidates view</string>
     <string name="experimental_candidates_view_description">Uses an alternative Android display mode for the hardware keyboard. May cause display problems.</string>
-    <string name="commit_text_on_null_fields_title">Commit mapped keys in terminals (TYPE_NULL)</string>
-    <string name="commit_text_on_null_fields_description">Use layout, Alt, and SYM maps in Termux and other listed TYPE_NULL editors instead of launcher/power shortcuts. Off by default.</string>
+    <string name="treat_non_text_fields_as_text_title">Treat non-text fields as text</string>
+    <string name="treat_non_text_fields_as_text_description">Keep layout, Alt, and SYM maps active in terminals (Termux, nix-on-droid) that do not report a text field. Off by default.</string>
     <string name="clipboard_retention_time_title">Clipboard Retention Time</string>
     <string name="clipboard_retention_time_description">0 = never delete clips</string>
     <string name="clipboard_retention_time_minutes">%1$d minutes</string>
