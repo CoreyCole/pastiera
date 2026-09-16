@@ -248,6 +248,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     
     // Current package name
     private var currentPackageName: String? = null
+    private var originalNonTextFieldInputType: Int? = null
     
     // Constants
     private val DOUBLE_TAP_THRESHOLD = 500L
@@ -402,12 +403,15 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val symPage: Int
         get() = if (::symLayoutController.isInitialized) symLayoutController.currentSymPage() else 0
 
-    private fun shouldTreatNonTextFieldAsText(info: EditorInfo?): Boolean =
-        SettingsManager.shouldTreatNonTextFieldAsText(
+    private fun shouldTreatNonTextFieldAsText(info: EditorInfo?): Boolean {
+        val inputType = originalNonTextFieldInputType ?: info?.inputType ?: return false
+        return SettingsManager.shouldTreatNonTextFieldAsText(
             this,
-            info,
-            currentPackageName ?: info?.packageName
+            packageName = info?.packageName,
+            extraPackageName = currentPackageName ?: info?.packageName,
+            inputType = inputType
         )
+    }
 
     /**
      * Class-0 editors (TYPE_NULL or variation-only types) are not treated as text.
@@ -426,7 +430,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         normalizeEditorInfoForNonTextField(info)
         inputContextState = InputContextState.fromEditorInfo(
             info,
-            forceCommitText = shouldTreatNonTextFieldAsText(info)
+            treatAsText = shouldTreatNonTextFieldAsText(info)
         )
     }
 
@@ -2096,9 +2100,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             symLayoutController = symLayoutController,
             isInputViewActive = { isInputViewActive },
             hasActiveTextField = { inputContextState.isEditable },
-            allowShowWithoutInputConnection = {
-                shouldTreatNonTextFieldAsText(currentInputEditorInfo)
-            },
             isNavModeLatched = { ctrlLatchFromNavMode },
             currentInputConnection = { currentInputConnection },
             isInputViewShown = { isInputViewShown },
@@ -2127,6 +2128,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             refreshStatusBar = {
                 invalidateRenderedStatusSnapshot()
                 refreshStatusBar()
+            },
+            allowShowWithoutInputConnection = {
+                shouldTreatNonTextFieldAsText(currentInputEditorInfo)
             }
         )
         inputManager = getSystemService(InputManager::class.java)
@@ -2201,7 +2205,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 Log.d(TAG, "Alt modifier binding changed, reloading mappings...")
                 alternateCharacterManager.reloadModifierAndDeviceSymMappings()
                 Handler(Looper.getMainLooper()).post { updateStatusBarText() }
-            } else if (key == "commit_text_on_null_fields" || key == "commit_text_null_packages") {
+            } else if (key == "treat_non_text_fields_as_text" || key == "non_text_field_packages") {
                 Handler(Looper.getMainLooper()).post {
                     updateInputContextState(currentInputEditorInfo)
                     isInputViewActive = inputContextState.isEditable
@@ -3383,6 +3387,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         pendingKeyboardSurfaceTransition?.let(uiHandler::removeCallbacks)
         pendingKeyboardSurfaceTransition = null
         isInputViewActive = false
+        originalNonTextFieldInputType = null
         if (::keyboardVisibilityController.isInitialized) keyboardVisibilityController.onInputUnbound()
         traceImeVisibility("onUnbindInput")
         super.onUnbindInput()
@@ -3397,6 +3402,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         pendingKeyboardSurfaceTransition?.let(uiHandler::removeCallbacks)
         pendingKeyboardSurfaceTransition = null
         currentPackageName = info?.packageName
+        originalNonTextFieldInputType = info?.inputType
         normalizeEditorInfoForNonTextField(info)
         super.onStartInput(info, restarting)
         if (::textExpansionController.isInitialized) textExpansionController.clear()
@@ -3575,6 +3581,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         keyboardVisibilityController.cancelPendingSurfaceTransition()
         accidentalKeyPressFilter.reset()
         isInputViewActive = false
+        originalNonTextFieldInputType = null
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
         }

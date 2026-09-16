@@ -1,6 +1,7 @@
 package it.palsoftware.pastiera
 
 import android.content.Context
+import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -21,97 +22,114 @@ class TreatNonTextFieldsAsTextTest {
     @Before
     fun setUp() {
         SettingsManager.getPreferences(context).edit()
-            .remove("commit_text_on_null_fields")
-            .remove("commit_text_null_packages")
+            .remove("treat_non_text_fields_as_text")
+            .remove("non_text_field_packages")
             .commit()
     }
 
     @After
     fun tearDown() {
         SettingsManager.getPreferences(context).edit()
-            .remove("commit_text_on_null_fields")
-            .remove("commit_text_null_packages")
+            .remove("treat_non_text_fields_as_text")
+            .remove("non_text_field_packages")
             .commit()
     }
+
+    private fun shouldTreat(
+        packageName: String? = null,
+        extraPackageName: String? = null,
+        inputType: Int = EditorInfo.TYPE_NULL
+    ): Boolean = SettingsManager.shouldTreatNonTextFieldAsText(
+        context,
+        packageName = packageName,
+        extraPackageName = extraPackageName,
+        inputType = inputType
+    )
 
     @Test
     fun defaultPackagesIncludeTermuxAndStayOff() {
         assertFalse(SettingsManager.getTreatNonTextFieldsAsText(context))
         assertEquals(
-            setOf("com.termux", "com.termux.nix", "com.termux.app", "com.termux.styling"),
+            setOf("com.termux", "com.termux.nix"),
             SettingsManager.getNonTextFieldPackages(context)
         )
     }
 
     @Test
     fun settingOffKeepsListedPackageDisabled() {
-        val info = EditorInfo().apply {
-            packageName = "com.termux"
-            inputType = EditorInfo.TYPE_NULL
-        }
-        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+        assertFalse(shouldTreat(packageName = "com.termux"))
     }
 
     @Test
     fun settingOnTreatsListedPackageTypeNullAsText() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
-        val info = EditorInfo().apply {
-            packageName = "com.termux"
-            inputType = EditorInfo.TYPE_NULL
-        }
-        assertTrue(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+        assertTrue(shouldTreat(packageName = "com.termux", inputType = EditorInfo.TYPE_NULL))
     }
 
     @Test
     fun settingOnTreatsListedPackageClassZeroAsText() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
-        val info = EditorInfo().apply {
-            packageName = "com.termux"
-            inputType = 0x80090
-        }
-        assertTrue(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+        assertTrue(shouldTreat(packageName = "com.termux", inputType = 0x80090))
+    }
+
+    @Test
+    fun listedPackageRealTextFieldIsIgnored() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
+        assertFalse(
+            shouldTreat(
+                packageName = "com.termux",
+                inputType = InputType.TYPE_CLASS_TEXT
+            )
+        )
     }
 
     @Test
     fun unlistedPackageIsIgnoredEvenWhenEnabled() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
-        val info = EditorInfo().apply {
-            packageName = "com.google.android.apps.maps"
-            inputType = EditorInfo.TYPE_NULL
-        }
-        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+        assertFalse(shouldTreat(packageName = "com.google.android.apps.maps"))
     }
 
     @Test
     fun unlistedPackageClassZeroIsIgnored() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
-        val info = EditorInfo().apply {
-            packageName = "com.android.launcher3"
-            inputType = 0x80090
-        }
-        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+        assertFalse(
+            shouldTreat(
+                packageName = "com.android.launcher3",
+                inputType = 0x80090
+            )
+        )
     }
 
     @Test
     fun classZeroWithoutPackageIsIgnored() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
-        val info = EditorInfo().apply {
-            inputType = 0x80090
-        }
-        assertFalse(SettingsManager.shouldTreatNonTextFieldAsText(context, info))
+        assertFalse(shouldTreat(inputType = 0x80090))
     }
 
     @Test
     fun extraPackageNameCanMatchAllowlist() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
-        val info = EditorInfo().apply {
-            inputType = EditorInfo.TYPE_NULL
-        }
         assertTrue(
-            SettingsManager.shouldTreatNonTextFieldAsText(
-                context,
-                info,
-                extraPackageName = "com.termux.nix"
+            shouldTreat(
+                extraPackageName = "com.termux.nix",
+                inputType = EditorInfo.TYPE_NULL
+            )
+        )
+    }
+
+    @Test
+    fun prefixDoesNotMatchRelatedPackages() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
+        assertFalse(
+            shouldTreat(
+                packageName = "com.termux.styling",
+                inputType = EditorInfo.TYPE_NULL
+            )
+        )
+        assertFalse(
+            shouldTreat(
+                packageName = "com.termux.app",
+                inputType = EditorInfo.TYPE_NULL
             )
         )
     }

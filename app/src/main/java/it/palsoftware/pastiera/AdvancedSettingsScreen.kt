@@ -138,7 +138,7 @@ fun AdvancedSettingsScreen(
                 "experimental_candidates_view_enabled" -> {
                     experimentalCandidatesViewEnabled = SettingsManager.getExperimentalCandidatesViewEnabled(context)
                 }
-                "commit_text_on_null_fields" -> {
+                "treat_non_text_fields_as_text" -> {
                     treatNonTextFieldsAsText = SettingsManager.getTreatNonTextFieldsAsText(context)
                 }
             }

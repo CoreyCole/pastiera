@@ -184,7 +184,7 @@ data class InputContextState(
 
         fun fromEditorInfo(
             info: EditorInfo?,
-            forceCommitText: Boolean = false
+            treatAsText: Boolean = false
         ): InputContextState {
             if (info == null) {
                 Log.d(TAG, "Input field: NULL (no EditorInfo)")
@@ -203,9 +203,9 @@ data class InputContextState(
 
             val isTextInput = inputClass != InputType.TYPE_NULL
             val isNotNoInput = inputClass != 0
-            val isEditable = forceCommitText || (isTextInput && isNotNoInput)
+            val isEditable = treatAsText || (isTextInput && isNotNoInput)
 
-            val isReallyEditable = forceCommitText || (isEditable && (
+            val isReallyEditable = treatAsText || (isEditable && (
                 inputClass == InputType.TYPE_CLASS_TEXT ||
                 inputClass == InputType.TYPE_CLASS_NUMBER ||
                 inputClass == InputType.TYPE_CLASS_PHONE ||
@@ -213,7 +213,7 @@ data class InputContextState(
             ))
 
             // Check URI first (more specific) before password variations
-            val restrictedReason = if (forceCommitText) {
+            val restrictedReason = if (treatAsText) {
                 RestrictedReason.FILTER
             } else when {
                 inputVariation == InputType.TYPE_TEXT_VARIATION_URI ->

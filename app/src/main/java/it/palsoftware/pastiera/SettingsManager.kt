@@ -6,8 +6,8 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import android.text.InputType
 import android.view.KeyEvent
-import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import it.palsoftware.pastiera.commands.CommandJson
 import it.palsoftware.pastiera.commands.CommandLaunchSpec
@@ -67,8 +67,8 @@ object SettingsManager {
     private const val KEY_SWIPE_TO_DELETE = "swipe_to_delete"
     private const val KEY_SWIPE_TO_DELETE_PROVIDER = "swipe_to_delete_provider"
     private const val KEY_AUTO_SHOW_KEYBOARD = "auto_show_keyboard"
-    private const val KEY_COMMIT_TEXT_ON_NULL_FIELDS = "commit_text_on_null_fields"
-    private const val KEY_COMMIT_TEXT_NULL_PACKAGES = "commit_text_null_packages"
+    private const val KEY_TREAT_NON_TEXT_FIELDS_AS_TEXT = "treat_non_text_fields_as_text"
+    private const val KEY_NON_TEXT_FIELD_PACKAGES = "non_text_field_packages"
     private const val KEY_CLEAR_ALT_ON_SPACE = "clear_alt_on_space"
     private const val KEY_ALT_CTRL_SPEECH_SHORTCUT = "alt_ctrl_speech_shortcut"
     private const val KEY_LAYOUT_AWARE_CTRL_SHORTCUTS = "layout_aware_ctrl_shortcuts"
@@ -342,9 +342,8 @@ object SettingsManager {
     private const val DEFAULT_SMART_QUOTES_STYLE = SMART_QUOTES_STYLE_GERMAN_GUILLEMETS
     private const val DEFAULT_SWIPE_TO_DELETE = false
     private const val DEFAULT_AUTO_SHOW_KEYBOARD = true
-    private const val DEFAULT_COMMIT_TEXT_ON_NULL_FIELDS = false
-    const val DEFAULT_COMMIT_TEXT_NULL_PACKAGES =
-        "com.termux,com.termux.nix,com.termux.app,com.termux.styling"
+    private const val DEFAULT_TREAT_NON_TEXT_FIELDS_AS_TEXT = false
+    private const val DEFAULT_NON_TEXT_FIELD_PACKAGES = "com.termux,com.termux.nix"
     private const val DEFAULT_CLEAR_ALT_ON_SPACE = true
     private const val DEFAULT_ALT_CTRL_SPEECH_SHORTCUT = true
     private const val DEFAULT_LAYOUT_AWARE_CTRL_SHORTCUTS = false
@@ -2181,50 +2180,55 @@ object SettingsManager {
 
     fun getTreatNonTextFieldsAsText(context: Context): Boolean =
         getPreferences(context).getBoolean(
-            KEY_COMMIT_TEXT_ON_NULL_FIELDS,
-            DEFAULT_COMMIT_TEXT_ON_NULL_FIELDS
+            KEY_TREAT_NON_TEXT_FIELDS_AS_TEXT,
+            DEFAULT_TREAT_NON_TEXT_FIELDS_AS_TEXT
         )
 
     fun setTreatNonTextFieldsAsText(context: Context, enabled: Boolean) {
         getPreferences(context).edit()
-            .putBoolean(KEY_COMMIT_TEXT_ON_NULL_FIELDS, enabled)
+            .putBoolean(KEY_TREAT_NON_TEXT_FIELDS_AS_TEXT, enabled)
             .commit()
     }
 
     fun getNonTextFieldPackages(context: Context): Set<String> =
         parseNonTextFieldPackages(
             getPreferences(context).getString(
-                KEY_COMMIT_TEXT_NULL_PACKAGES,
-                DEFAULT_COMMIT_TEXT_NULL_PACKAGES
+                KEY_NON_TEXT_FIELD_PACKAGES,
+                DEFAULT_NON_TEXT_FIELD_PACKAGES
             )
         )
 
-    fun setNonTextFieldPackages(context: Context, packages: Set<String>) {
+    internal fun setNonTextFieldPackages(context: Context, packages: Set<String>) {
         val value = packages
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .joinToString(",")
-            .ifEmpty { DEFAULT_COMMIT_TEXT_NULL_PACKAGES }
+            .ifEmpty { DEFAULT_NON_TEXT_FIELD_PACKAGES }
         getPreferences(context).edit()
-            .putString(KEY_COMMIT_TEXT_NULL_PACKAGES, value)
+            .putString(KEY_NON_TEXT_FIELD_PACKAGES, value)
             .apply()
     }
 
     fun shouldTreatNonTextFieldAsText(
         context: Context,
-        info: EditorInfo?,
-        extraPackageName: String? = null
+        packageName: String?,
+        extraPackageName: String? = null,
+        inputType: Int
     ): Boolean {
-        if (!getTreatNonTextFieldsAsText(context) || info == null) return false
+        if (!getTreatNonTextFieldsAsText(context)) return false
         val packages = getNonTextFieldPackages(context)
-        return packageMatchesNonTextFieldList(info.packageName, packages) ||
-            packageMatchesNonTextFieldList(extraPackageName, packages)
+        if (
+            !packageMatchesNonTextFieldList(packageName, packages) &&
+            !packageMatchesNonTextFieldList(extraPackageName, packages)
+        ) {
+            return false
+        }
+        return (inputType and InputType.TYPE_MASK_CLASS) == 0
     }
 
     internal fun packageMatchesNonTextFieldList(pkg: String?, packages: Set<String>): Boolean {
         if (pkg.isNullOrBlank()) return false
-        if (pkg in packages) return true
-        return packages.any { listed -> pkg == listed || pkg.startsWith("$listed.") }
+        return pkg in packages
     }
 
     internal fun parseNonTextFieldPackages(raw: String?): Set<String> =

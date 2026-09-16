@@ -116,12 +116,12 @@ class InputContextStateTest {
     }
 
     @Test
-    fun forceCommitTextTreatsTypeNullAsEditableFilter() {
+    fun treatAsTextTreatsTypeNullAsEditableFilter() {
         val info = EditorInfo().apply {
             packageName = "com.example.terminal"
             inputType = EditorInfo.TYPE_NULL
         }
-        val state = InputContextState.fromEditorInfo(info, forceCommitText = true)
+        val state = InputContextState.fromEditorInfo(info, treatAsText = true)
         assertTrue(state.isEditable)
         assertTrue(state.isReallyEditable)
         assertEquals(InputContextState.RestrictedReason.FILTER, state.restrictedReason)
@@ -131,7 +131,7 @@ class InputContextStateTest {
     }
 
     @Test
-    fun forceCommitTextTreatsVisiblePasswordVariationWithoutClassAsFilter() {
+    fun treatAsTextTreatsVisiblePasswordVariationWithoutClassAsFilter() {
         val info = EditorInfo().apply {
             packageName = "com.example.terminal"
             // Class 0 + visible-password variation (e.g. char-based terminal input).
@@ -140,7 +140,7 @@ class InputContextStateTest {
         val unforced = InputContextState.fromEditorInfo(info)
         assertFalse(unforced.isReallyEditable)
 
-        val forced = InputContextState.fromEditorInfo(info, forceCommitText = true)
+        val forced = InputContextState.fromEditorInfo(info, treatAsText = true)
         assertTrue(forced.isEditable)
         assertTrue(forced.isReallyEditable)
         assertEquals(InputContextState.RestrictedReason.FILTER, forced.restrictedReason)

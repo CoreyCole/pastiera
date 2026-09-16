@@ -14,7 +14,6 @@ class KeyboardVisibilityController(
     private val symLayoutController: SymLayoutController,
     private val isInputViewActive: () -> Boolean,
     private val hasActiveTextField: () -> Boolean,
-    private val allowShowWithoutInputConnection: () -> Boolean = { false },
     private val isNavModeLatched: () -> Boolean,
     private val currentInputConnection: () -> InputConnection?,
     private val isInputViewShown: () -> Boolean,
@@ -32,6 +31,7 @@ class KeyboardVisibilityController(
     private val requestHideInputView: () -> Unit,
     private val requestShowInputView: () -> Unit,
     private val refreshStatusBar: () -> Unit,
+    private val allowShowWithoutInputConnection: () -> Boolean = { false },
     private val trace: (String) -> Unit = {}
 ) {
     enum class RenderedSurface { HIDDEN, FULL_INPUT_VIEW, CANDIDATES_VIEW }

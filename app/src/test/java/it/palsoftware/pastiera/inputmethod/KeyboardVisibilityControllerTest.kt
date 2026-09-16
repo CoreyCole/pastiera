@@ -416,7 +416,6 @@ class KeyboardVisibilityControllerTest {
             symLayoutController = SymLayoutController(context, prefs, alternate),
             isInputViewActive = { active },
             hasActiveTextField = { active },
-            allowShowWithoutInputConnection = { allowShowWithoutConnection },
             isNavModeLatched = { false },
             currentInputConnection = { connection },
             isInputViewShown = { inputShown },
@@ -436,7 +435,8 @@ class KeyboardVisibilityControllerTest {
                 if (rejectHideRequest) throw IllegalStateException("Window detached")
             },
             requestShowInputView = { showRequests++ },
-            refreshStatusBar = { refreshes++ }
+            refreshStatusBar = { refreshes++ },
+            allowShowWithoutInputConnection = { allowShowWithoutConnection }
         )
         fun runNext() = actions.removeAt(0).second.invoke()
         fun hasImmediateActions() = actions.any { it.first == 0L }
