@@ -6,7 +6,10 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import android.text.InputType
 import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import it.palsoftware.pastiera.commands.CommandJson
 import it.palsoftware.pastiera.commands.CommandLaunchSpec
@@ -66,6 +69,8 @@ object SettingsManager {
     private const val KEY_SWIPE_TO_DELETE = "swipe_to_delete"
     private const val KEY_SWIPE_TO_DELETE_PROVIDER = "swipe_to_delete_provider"
     private const val KEY_AUTO_SHOW_KEYBOARD = "auto_show_keyboard"
+    private const val KEY_COMMIT_TEXT_ON_NULL_FIELDS = "commit_text_on_null_fields"
+    private const val KEY_COMMIT_TEXT_NULL_PACKAGES = "commit_text_null_packages"
     private const val KEY_CLEAR_ALT_ON_SPACE = "clear_alt_on_space"
     private const val KEY_ALT_CTRL_SPEECH_SHORTCUT = "alt_ctrl_speech_shortcut"
     private const val KEY_LAYOUT_AWARE_CTRL_SHORTCUTS = "layout_aware_ctrl_shortcuts"
@@ -339,6 +344,9 @@ object SettingsManager {
     private const val DEFAULT_SMART_QUOTES_STYLE = SMART_QUOTES_STYLE_GERMAN_GUILLEMETS
     private const val DEFAULT_SWIPE_TO_DELETE = false
     private const val DEFAULT_AUTO_SHOW_KEYBOARD = true
+    private const val DEFAULT_COMMIT_TEXT_ON_NULL_FIELDS = false
+    const val DEFAULT_COMMIT_TEXT_NULL_PACKAGES =
+        "com.termux,com.termux.nix,com.termux.app,com.termux.styling"
     private const val DEFAULT_CLEAR_ALT_ON_SPACE = true
     private const val DEFAULT_ALT_CTRL_SPEECH_SHORTCUT = true
     private const val DEFAULT_LAYOUT_AWARE_CTRL_SHORTCUTS = false
@@ -2172,6 +2180,70 @@ object SettingsManager {
             .putBoolean(KEY_AUTO_SHOW_KEYBOARD, enabled)
             .apply()
     }
+
+    fun getCommitTextOnNullFields(context: Context): Boolean =
+        getPreferences(context).getBoolean(
+            KEY_COMMIT_TEXT_ON_NULL_FIELDS,
+            DEFAULT_COMMIT_TEXT_ON_NULL_FIELDS
+        )
+
+    fun setCommitTextOnNullFields(context: Context, enabled: Boolean) {
+        getPreferences(context).edit()
+            .putBoolean(KEY_COMMIT_TEXT_ON_NULL_FIELDS, enabled)
+            .commit()
+    }
+
+    fun getCommitTextNullPackages(context: Context): Set<String> =
+        parseCommitTextNullPackages(
+            getPreferences(context).getString(
+                KEY_COMMIT_TEXT_NULL_PACKAGES,
+                DEFAULT_COMMIT_TEXT_NULL_PACKAGES
+            )
+        )
+
+    fun setCommitTextNullPackages(context: Context, packages: Set<String>) {
+        val value = packages
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString(",")
+            .ifEmpty { DEFAULT_COMMIT_TEXT_NULL_PACKAGES }
+        getPreferences(context).edit()
+            .putString(KEY_COMMIT_TEXT_NULL_PACKAGES, value)
+            .apply()
+    }
+
+    fun shouldCommitTextOnNullField(
+        context: Context,
+        info: EditorInfo?,
+        ic: InputConnection?,
+        extraPackageName: String? = null
+    ): Boolean {
+        if (!getCommitTextOnNullFields(context) || info == null) return false
+        val packages = getCommitTextNullPackages(context)
+        if (
+            packageMatchesCommitTextNullList(info.packageName, packages) ||
+            packageMatchesCommitTextNullList(extraPackageName, packages)
+        ) {
+            return true
+        }
+        // Termux enforce-char-based-input: class 0 + visible-password variation (0x80090).
+        val inputClass = info.inputType and InputType.TYPE_MASK_CLASS
+        val variation = info.inputType and InputType.TYPE_MASK_VARIATION
+        return inputClass == 0 && variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+    }
+
+    internal fun packageMatchesCommitTextNullList(pkg: String?, packages: Set<String>): Boolean {
+        if (pkg.isNullOrBlank()) return false
+        if (pkg in packages) return true
+        return packages.any { listed -> pkg == listed || pkg.startsWith("$listed.") }
+    }
+
+    internal fun parseCommitTextNullPackages(raw: String?): Set<String> =
+        raw?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toSet()
+            ?: emptySet()
 
     /**
      * Returns whether Alt+Ctrl shortcut for speech recognition is enabled.

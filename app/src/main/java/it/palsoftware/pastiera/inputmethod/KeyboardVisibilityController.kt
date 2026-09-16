@@ -75,7 +75,9 @@ class KeyboardVisibilityController(
         return !usesCandidatesView()
     }
 
-    private fun canShow() = isInputViewActive() && currentInputConnection() != null && !isNavModeLatched()
+    // Termux often has no InputConnection until the IME surface is requested.
+    private fun canShow() = isInputViewActive() && !isNavModeLatched() &&
+        (currentInputConnection() != null || hasActiveTextField())
 
     fun ensureImeSurfaceVisible() {
         if (!canShow() || waitingForBackendHide) return

@@ -110,6 +110,9 @@ fun AdvancedSettingsScreen(
     var experimentalCandidatesViewEnabled by remember {
         mutableStateOf(SettingsManager.getExperimentalCandidatesViewEnabled(context))
     }
+    var commitTextOnNullFields by remember {
+        mutableStateOf(SettingsManager.getCommitTextOnNullFields(context))
+    }
     var pendingDeviceChangeRestore by remember {
         mutableStateOf<Pair<Uri, RestoreManager.DeviceChange>?>(null)
     }
@@ -134,6 +137,9 @@ fun AdvancedSettingsScreen(
                 }
                 "experimental_candidates_view_enabled" -> {
                     experimentalCandidatesViewEnabled = SettingsManager.getExperimentalCandidatesViewEnabled(context)
+                }
+                "commit_text_on_null_fields" -> {
+                    commitTextOnNullFields = SettingsManager.getCommitTextOnNullFields(context)
                 }
             }
         }
@@ -630,6 +636,43 @@ fun AdvancedSettingsScreen(
                                     onCheckedChange = { enabled ->
                                         experimentalCandidatesViewEnabled = enabled
                                         SettingsManager.setExperimentalCandidatesViewEnabled(context, enabled)
+                                    }
+                                )
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .settingRow(SettingLinkIds.ADVANCED_COMMIT_TEXT_ON_NULL_FIELDS)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.commit_text_on_null_fields_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.commit_text_on_null_fields_description),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = commitTextOnNullFields,
+                                    onCheckedChange = { enabled ->
+                                        commitTextOnNullFields = enabled
+                                        SettingsManager.setCommitTextOnNullFields(context, enabled)
                                     }
                                 )
                             }

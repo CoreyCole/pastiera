@@ -102,5 +102,49 @@ class InputContextStateTest {
         assertEquals(InputContextState.EMPTY, state)
         assertFalse(state.isEditable)
     }
+
+    @Test
+    fun typeNullIsNotEditableUnlessForced() {
+        val info = EditorInfo().apply {
+            packageName = "com.termux"
+            inputType = EditorInfo.TYPE_NULL
+        }
+        val state = InputContextState.fromEditorInfo(info)
+        assertFalse(state.isEditable)
+        assertFalse(state.isReallyEditable)
+        assertNull(state.restrictedReason)
+    }
+
+    @Test
+    fun forceCommitTextTreatsTypeNullAsEditableFilter() {
+        val info = EditorInfo().apply {
+            packageName = "com.termux"
+            inputType = EditorInfo.TYPE_NULL
+        }
+        val state = InputContextState.fromEditorInfo(info, forceCommitText = true)
+        assertTrue(state.isEditable)
+        assertTrue(state.isReallyEditable)
+        assertEquals(InputContextState.RestrictedReason.FILTER, state.restrictedReason)
+        assertTrue(state.shouldDisableSuggestions)
+        assertTrue(state.shouldDisableAutoCapitalize)
+        assertFalse(state.shouldDisableVariations)
+    }
+
+    @Test
+    fun forceCommitTextTreatsVisiblePasswordVariationWithoutClassAsFilter() {
+        val info = EditorInfo().apply {
+            packageName = "com.termux"
+            // Termux enforce-char-based-input: class 0 + visible-password variation.
+            inputType = 0x80090
+        }
+        val unforced = InputContextState.fromEditorInfo(info)
+        assertFalse(unforced.isReallyEditable)
+
+        val forced = InputContextState.fromEditorInfo(info, forceCommitText = true)
+        assertTrue(forced.isEditable)
+        assertTrue(forced.isReallyEditable)
+        assertEquals(InputContextState.RestrictedReason.FILTER, forced.restrictedReason)
+        assertFalse(forced.isPasswordField)
+    }
 }
 

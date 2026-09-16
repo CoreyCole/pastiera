@@ -402,8 +402,46 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val symPage: Int
         get() = if (::symLayoutController.isInitialized) symLayoutController.currentSymPage() else 0
 
+    private fun shouldForceTerminalCommitText(info: EditorInfo?): Boolean =
+        SettingsManager.shouldCommitTextOnNullField(
+            this,
+            info,
+            currentInputConnection,
+            currentPackageName ?: info?.packageName
+        )
+
+    /**
+     * Termux with enforce-char-based-input reports class-0 inputType 0x80090.
+     * Rewrite it to TYPE_CLASS_TEXT so layout/Alt/SYM maps use commitText.
+     */
+    private fun normalizeEditorInfoForTerminalCommit(info: EditorInfo?) {
+        if (info == null || !shouldForceTerminalCommitText(info)) return
+        val inputClass = info.inputType and android.text.InputType.TYPE_MASK_CLASS
+        if (inputClass == 0) {
+            info.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+    }
+
     private fun updateInputContextState(info: EditorInfo?) {
-        inputContextState = InputContextState.fromEditorInfo(info)
+        normalizeEditorInfoForTerminalCommit(info)
+        inputContextState = InputContextState.fromEditorInfo(
+            info,
+            forceCommitText = shouldForceTerminalCommitText(info)
+        )
+    }
+
+    private fun hasEditableField(info: EditorInfo?, inputConnection: InputConnection?): Boolean {
+        val treatAsText = shouldForceTerminalCommitText(info)
+        val inputType = info?.inputType ?: EditorInfo.TYPE_NULL
+        return treatAsText || (inputConnection != null && inputType != EditorInfo.TYPE_NULL)
+    }
+
+    private fun commitMappedTerminalText(text: String): Boolean {
+        val ic = currentInputConnection ?: return false
+        if (handleBoundaryTextBeforeCommit(text, ic)) return true
+        ic.commitText(text, 1)
+        return true
     }
 
     private fun markSelectionUpdateSkipAfterCommit() {
@@ -2160,6 +2198,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 Log.d(TAG, "Alt modifier binding changed, reloading mappings...")
                 alternateCharacterManager.reloadModifierAndDeviceSymMappings()
                 Handler(Looper.getMainLooper()).post { updateStatusBarText() }
+            } else if (key == "commit_text_on_null_fields" || key == "commit_text_null_packages") {
+                Handler(Looper.getMainLooper()).post {
+                    updateInputContextState(currentInputEditorInfo)
+                    isInputViewActive = inputContextState.isEditable
+                    updateStatusBarText()
+                }
             } else if (key == "clear_alt_on_space") {
                 clearAltOnSpaceEnabled = SettingsManager.getClearAltOnSpace(this)
             } else if (key == "emoji_shortcodes_enabled" || key == "symbol_shortcodes_enabled") {
@@ -3349,6 +3393,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     override fun onStartInput(info: EditorInfo?, restarting: Boolean) {
         pendingKeyboardSurfaceTransition?.let(uiHandler::removeCallbacks)
         pendingKeyboardSurfaceTransition = null
+        currentPackageName = info?.packageName
+        normalizeEditorInfoForTerminalCommit(info)
         super.onStartInput(info, restarting)
         if (::textExpansionController.isInitialized) textExpansionController.clear()
         if (
@@ -3367,16 +3413,20 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         invalidateRenderedStatusSnapshot()
         editorHasActiveSelection = false
         
-        currentPackageName = info?.packageName
         updateDebugImeContextSnapshot(info)
         
         // Reset clipboard overlay when starting new input
 
+        normalizeEditorInfoForTerminalCommit(info)
         updateInputContextState(info)
         val state = inputContextState
         val isEditable = state.isEditable
         val isReallyEditable = state.isReallyEditable
-        isInputViewActive = isEditable
+        isInputViewActive = isEditable || shouldForceTerminalCommitText(info)
+        if (shouldForceTerminalCommitText(info)) {
+            @Suppress("DEPRECATION")
+            requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_FORCED)
+        }
         keyboardVisibilityController.onInputStarted(restarting)
         traceImeVisibility("onStartInput restarting=$restarting")
         
@@ -4404,8 +4454,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Check if we have an editable field at the very start
         val info = currentInputEditorInfo
         val initialInputConnection = currentInputConnection
-        val inputType = info?.inputType ?: EditorInfo.TYPE_NULL
-        val hasEditableField = initialInputConnection != null && inputType != EditorInfo.TYPE_NULL
+        val hasEditableField = hasEditableField(info, initialInputConnection)
         if (hasEditableField && !isInputViewActive) {
             isInputViewActive = true
         }
@@ -4575,12 +4624,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled
             )
             if (!symChar.isNullOrEmpty()) {
-                val inputConnection = currentInputConnection
-                if (!handleBoundaryTextBeforeCommit(symChar, inputConnection)) {
-                    inputConnection?.commitText(symChar, 1)
+                if (commitMappedTerminalText(symChar)) {
+                    updateStatusBarText()
+                    return true
                 }
-                updateStatusBarText()
-                return true
             }
         }
 
@@ -5093,8 +5140,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Check if we have an editable field at the start (same logic as onKeyDown)
         val info = currentInputEditorInfo
         val ic = currentInputConnection
-        val inputType = info?.inputType ?: EditorInfo.TYPE_NULL
-        val hasEditableField = ic != null && inputType != EditorInfo.TYPE_NULL
+        val hasEditableField = hasEditableField(info, ic)
 
         if (
             hasEditableField &&
