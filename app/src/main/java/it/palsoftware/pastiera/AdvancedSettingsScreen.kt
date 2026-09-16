@@ -113,6 +113,9 @@ fun AdvancedSettingsScreen(
     var treatNonTextFieldsAsText by remember {
         mutableStateOf(SettingsManager.getTreatNonTextFieldsAsText(context))
     }
+    var nonTextFieldPackagesText by remember {
+        mutableStateOf(SettingsManager.getNonTextFieldPackages(context).joinToString(", "))
+    }
     var pendingDeviceChangeRestore by remember {
         mutableStateOf<Pair<Uri, RestoreManager.DeviceChange>?>(null)
     }
@@ -646,34 +649,58 @@ fun AdvancedSettingsScreen(
                                 .fillMaxWidth()
                                 .settingRow(SettingLinkIds.ADVANCED_TREAT_NON_TEXT_FIELDS_AS_TEXT)
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Text(
-                                        text = stringResource(R.string.treat_non_text_fields_as_text_title),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.treat_non_text_fields_as_text_description),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.treat_non_text_fields_as_text_title),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.treat_non_text_fields_as_text_description),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Switch(
+                                        checked = treatNonTextFieldsAsText,
+                                        onCheckedChange = { enabled ->
+                                            treatNonTextFieldsAsText = enabled
+                                            SettingsManager.setTreatNonTextFieldsAsText(context, enabled)
+                                        }
                                     )
                                 }
-                                Switch(
-                                    checked = treatNonTextFieldsAsText,
-                                    onCheckedChange = { enabled ->
-                                        treatNonTextFieldsAsText = enabled
-                                        SettingsManager.setTreatNonTextFieldsAsText(context, enabled)
-                                    }
+                                OutlinedTextField(
+                                    value = nonTextFieldPackagesText,
+                                    onValueChange = { text ->
+                                        nonTextFieldPackagesText = text
+                                        SettingsManager.setNonTextFieldPackagesRaw(context, text)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = {
+                                        Text(stringResource(R.string.treat_non_text_fields_as_text_packages_label))
+                                    },
+                                    placeholder = {
+                                        Text(stringResource(R.string.treat_non_text_fields_as_text_packages_hint))
+                                    },
+                                    supportingText = {
+                                        Text(stringResource(R.string.treat_non_text_fields_as_text_packages_help))
+                                    },
+                                    minLines = 1,
+                                    maxLines = 3
                                 )
                             }
                         }

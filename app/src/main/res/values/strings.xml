@@ -1493,7 +1493,10 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="experimental_candidates_view_title">Experimental candidates view</string>
     <string name="experimental_candidates_view_description">Uses an alternative Android display mode for the hardware keyboard. May cause display problems.</string>
     <string name="treat_non_text_fields_as_text_title">Treat non-text fields as text</string>
-    <string name="treat_non_text_fields_as_text_description">Keep layout, Alt, and SYM maps active in terminals (Termux, nix-on-droid) that do not report a text field. Off by default.</string>
+    <string name="treat_non_text_fields_as_text_description">In listed apps, if a field does not advertise as text, still use layout, Alt, and SYM. Other apps are unchanged. Off by default.</string>
+    <string name="treat_non_text_fields_as_text_packages_label">App IDs</string>
+    <string name="treat_non_text_fields_as_text_packages_hint">com.termux</string>
+    <string name="treat_non_text_fields_as_text_packages_help">Comma-separated package names</string>
     <string name="clipboard_retention_time_title">Clipboard Retention Time</string>
     <string name="clipboard_retention_time_description">0 = never delete clips</string>
     <string name="clipboard_retention_time_minutes">%1$d minutes</string>

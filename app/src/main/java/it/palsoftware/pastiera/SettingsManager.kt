@@ -343,7 +343,7 @@ object SettingsManager {
     private const val DEFAULT_SWIPE_TO_DELETE = false
     private const val DEFAULT_AUTO_SHOW_KEYBOARD = true
     private const val DEFAULT_TREAT_NON_TEXT_FIELDS_AS_TEXT = false
-    private const val DEFAULT_NON_TEXT_FIELD_PACKAGES = "com.termux,com.termux.nix"
+    private const val DEFAULT_NON_TEXT_FIELD_PACKAGES = "com.termux"
     private const val DEFAULT_CLEAR_ALT_ON_SPACE = true
     private const val DEFAULT_ALT_CTRL_SPEECH_SHORTCUT = true
     private const val DEFAULT_LAYOUT_AWARE_CTRL_SHORTCUTS = false
@@ -2198,15 +2198,18 @@ object SettingsManager {
             )
         )
 
-    internal fun setNonTextFieldPackages(context: Context, packages: Set<String>) {
+    fun setNonTextFieldPackages(context: Context, packages: Set<String>) {
         val value = packages
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .joinToString(",")
-            .ifEmpty { DEFAULT_NON_TEXT_FIELD_PACKAGES }
         getPreferences(context).edit()
             .putString(KEY_NON_TEXT_FIELD_PACKAGES, value)
             .apply()
+    }
+
+    fun setNonTextFieldPackagesRaw(context: Context, raw: String) {
+        setNonTextFieldPackages(context, parseNonTextFieldPackages(raw))
     }
 
     fun shouldTreatNonTextFieldAsText(
@@ -2232,7 +2235,7 @@ object SettingsManager {
     }
 
     internal fun parseNonTextFieldPackages(raw: String?): Set<String> =
-        raw?.split(',')
+        raw?.split(',', '\n', ';')
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
             ?.toSet()

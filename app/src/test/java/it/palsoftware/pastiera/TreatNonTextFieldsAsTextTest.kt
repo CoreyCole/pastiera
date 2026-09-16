@@ -50,7 +50,7 @@ class TreatNonTextFieldsAsTextTest {
     fun defaultPackagesIncludeTermuxAndStayOff() {
         assertFalse(SettingsManager.getTreatNonTextFieldsAsText(context))
         assertEquals(
-            setOf("com.termux", "com.termux.nix"),
+            setOf("com.termux"),
             SettingsManager.getNonTextFieldPackages(context)
         )
     }
@@ -111,10 +111,19 @@ class TreatNonTextFieldsAsTextTest {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
         assertTrue(
             shouldTreat(
-                extraPackageName = "com.termux.nix",
+                extraPackageName = "com.termux",
                 inputType = EditorInfo.TYPE_NULL
             )
         )
+    }
+
+    @Test
+    fun customPackageListIsExactMatch() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
+        SettingsManager.setNonTextFieldPackagesRaw(context, "com.termux.nix, org.example.term")
+        assertTrue(shouldTreat(packageName = "com.termux.nix"))
+        assertTrue(shouldTreat(packageName = "org.example.term"))
+        assertFalse(shouldTreat(packageName = "com.termux"))
     }
 
     @Test
