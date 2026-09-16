@@ -4613,7 +4613,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         if (
             hasEditableField &&
-            symTogglePendingOnKeyUp &&
+            (symTogglePendingOnKeyUp || event?.isSymPressed == true) &&
             keyCode != KEYCODE_SYM &&
             event?.repeatCount == 0 &&
             !isPureModifierKey(keyCode)
@@ -4621,7 +4621,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             symChordUsedSinceKeyDown = true
             val symChar = symLayoutController.resolveChordSymbol(
                 keyCode = keyCode,
-                shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled
+                shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled,
+                preferTextPages = shouldForceTerminalCommitText(info)
             )
             if (!symChar.isNullOrEmpty()) {
                 if (commitMappedTerminalText(symChar)) {
