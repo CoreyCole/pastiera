@@ -144,6 +144,12 @@ fun AdvancedSettingsScreen(
                 "treat_non_text_fields_as_text" -> {
                     treatNonTextFieldsAsText = SettingsManager.getTreatNonTextFieldsAsText(context)
                 }
+                "non_text_field_packages" -> {
+                    val restored = SettingsManager.getNonTextFieldPackages(context)
+                    if (SettingsManager.parseNonTextFieldPackages(nonTextFieldPackagesText) != restored) {
+                        nonTextFieldPackagesText = restored.joinToString(", ")
+                    }
+                }
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -205,6 +211,8 @@ fun AdvancedSettingsScreen(
             // Explicitly reload values after restore to ensure UI is updated
             swipeIncrementalThreshold = SettingsManager.getSwipeIncrementalThreshold(context)
             clipboardRetentionTime = SettingsManager.getClipboardRetentionTime(context).toString()
+            treatNonTextFieldsAsText = SettingsManager.getTreatNonTextFieldsAsText(context)
+            nonTextFieldPackagesText = SettingsManager.getNonTextFieldPackages(context).joinToString(", ")
         }
     }
 

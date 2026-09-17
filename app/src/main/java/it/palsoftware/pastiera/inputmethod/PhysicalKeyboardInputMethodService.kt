@@ -3431,10 +3431,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val isEditable = state.isEditable
         val isReallyEditable = state.isReallyEditable
         isInputViewActive = isEditable
-        if (shouldTreatNonTextFieldAsText(info) && currentInputConnection == null) {
-            @Suppress("DEPRECATION")
-            requestShowSelf(android.view.inputmethod.InputMethodManager.SHOW_FORCED)
-        }
         keyboardVisibilityController.onInputStarted(restarting)
         traceImeVisibility("onStartInput restarting=$restarting")
         

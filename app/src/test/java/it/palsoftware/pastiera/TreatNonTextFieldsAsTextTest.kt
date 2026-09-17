@@ -127,6 +127,23 @@ class TreatNonTextFieldsAsTextTest {
     }
 
     @Test
+    fun emptyPackageListIsNoOpEvenWhenEnabled() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
+        SettingsManager.setNonTextFieldPackagesRaw(context, "")
+        assertEquals(emptySet<String>(), SettingsManager.getNonTextFieldPackages(context))
+        assertFalse(shouldTreat(packageName = "com.termux"))
+        assertFalse(shouldTreat(packageName = "com.termux", inputType = 0x80090))
+    }
+
+    @Test
+    fun whitespaceOnlyPackageListIsNoOp() {
+        SettingsManager.setTreatNonTextFieldsAsText(context, true)
+        SettingsManager.setNonTextFieldPackagesRaw(context, "  , ; \n ")
+        assertEquals(emptySet<String>(), SettingsManager.getNonTextFieldPackages(context))
+        assertFalse(shouldTreat(packageName = "com.termux"))
+    }
+
+    @Test
     fun prefixDoesNotMatchRelatedPackages() {
         SettingsManager.setTreatNonTextFieldsAsText(context, true)
         assertFalse(
