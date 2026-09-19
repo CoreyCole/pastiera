@@ -102,15 +102,15 @@ class KeyboardVisibilityController(
             return
         }
         if (attempt >= MAX_ATTEMPTS) {
-            // A failed show must not leave an invisible window intercepting the editor.
+            // Drop a ghost overlay locally. requestHideSelf() also finishes the IME session,
+            // so a failed recover on a hardware key would close Pastiera in every app.
             pending = false
             changingSurface = true
             setCandidatesSurfaceActive(false)
             setCandidatesViewShown(false)
-            hideInputWindow()
-            requestHideInputView()
+            if (windowShown) hideInputWindow()
             changingSurface = false
-            trace("show_failed target=${expectedSurface()}; window closed")
+            trace("show_failed target=${expectedSurface()}; local window cleared")
             return
         }
         trace("show target=${expectedSurface()} attempt=$attempt rendered=${renderedSurface()}")
@@ -160,7 +160,7 @@ class KeyboardVisibilityController(
             postToUi { if (ticket == generation) ensureImeSurfaceVisible() }
             return
         }
-        if (!shown && !changingSurface) {
+        if (!shown && !changingSurface && !pending) {
             dismissed = true
             cancelPendingSurfaceTransition()
         }

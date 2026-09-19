@@ -371,6 +371,29 @@ class KeyboardVisibilityControllerTest {
     }
 
     @Test
+    fun hideDuringPendingShowDoesNotDismissOrCancelRetry() {
+        val h = Harness()
+        h.controller.ensureImeSurfaceVisible()
+        h.runNext()
+        h.controller.onImeWindowVisibilityChanged(false)
+        assertFalse(h.controller.isCandidatesSurfaceExplicitlyDismissedForTests())
+        assertTrue(h.actions.isNotEmpty())
+        h.runNext()
+        assertEquals(2, h.showRequests + h.windowShows.size)
+    }
+
+    @Test
+    fun exhaustedShowRetriesDoNotRequestHideSelf() {
+        val h = Harness()
+        h.controller.onImeWindowVisibilityChanged(true)
+        h.controller.ensureImeSurfaceVisible()
+        h.drain()
+        assertEquals(0, h.hideRequests)
+        assertEquals(1, h.windowHides)
+        assertFalse(h.controller.isCandidatesSurfaceExplicitlyDismissedForTests())
+    }
+
+    @Test
     fun inactiveEditorOrMissingConnectionDoesNotScheduleShow() {
         val h = Harness()
         h.active = false

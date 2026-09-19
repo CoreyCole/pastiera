@@ -2946,8 +2946,23 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val bounds = if (::candidatesBarController.isInitialized) {
             candidatesBarController.visibleBoundsInWindow()
         } else null
-        Log.i("PastieraImeVisibility", "$event editor=$currentPackageName active=$isInputViewActive " +
-            "inputShown=$isInputViewShown requestedInput=$requestedInputViewShown bounds=$bounds")
+        val line = "$event editor=$currentPackageName active=$isInputViewActive " +
+            "inputShown=$isInputViewShown requestedInput=$requestedInputViewShown bounds=$bounds"
+        Log.i("PastieraImeVisibility", line)
+        appendImeDebugLog(line)
+    }
+
+    private fun appendImeDebugLog(line: String) {
+        try {
+            val file = java.io.File(
+                android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOWNLOADS
+                ),
+                "pastiera-ime-debug.txt"
+            )
+            file.appendText("${android.os.SystemClock.uptimeMillis()} $line\n")
+        } catch (_: Exception) {
+        }
     }
 
     private fun synchronizeCandidatesContainerVisibility() {
